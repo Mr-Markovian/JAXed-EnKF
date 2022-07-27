@@ -29,11 +29,11 @@ parameters['ebias']=6.0
 parameters['ecov']=4.0
 parameters['observables']=1
 parameters['model_dim']=model_dim
-parameters['obs_gap']=0.1
-parameters['solver_time_step']=0.01
+parameters['obs_gap']=0.01
+parameters['solver_time_step']=0.002
 parameters['mu']     =1.0
 parameters['N']      =40
-parameters['alpha']  =1.1              
+parameters['alpha']  =1.0             
 parameters['loc']    ='False'
 parameters['loc_fun']='none'
 parameters['l_scale']=0
@@ -81,10 +81,10 @@ def forecast(last_analysis_ensemble):
 
 @jit
 def analysis(forecast_ensemble,perturbed_obs,alpha):
-    Cov_f_H_T=jnp.cov(alpha*forecast_ensemble)@np.transpose(H)
-    Kalman_gain=Cov_f_H_T@jnp.linalg.inv(H@Cov_f_H_T+R)
-    innovations=H@forecast_ensemble - perturbed_obs 
-    analysis_ensemble=forecast_ensemble+Kalman_gain@innovations
+    P_f_H_T=jnp.cov(alpha*forecast_ensemble,rowvar=True)@np.transpose(H)
+    Kalman_gain=P_f_H_T@jnp.linalg.inv(H@P_f_H_T+R)
+    innovations=perturbed_obs-H@forecast_ensemble
+    analysis_ensemble=forecast_ensemble+(Kalman_gain@innovations)
     return analysis_ensemble
 
 # We create a stamp for this filter run using model detaisl and all the parameters above 
@@ -95,14 +95,14 @@ store_filtered_ensemble=np.zeros_like(store_predicted_ensemble)
 
 # Running enkf below
 ensemble=Initial_ensemble
-for i in range(num_assimilations):
+for i in range(num_assimilations-1):
     ensemble_predicted=forecast(ensemble)
-    ensemble_observation=mvr(observations[i],R,ensemble_size).T
+    ensemble_observation=mvr(observations[i+1],R,ensemble_size).T
     ensemble_filtered=analysis(ensemble_predicted,ensemble_observation,alpha)
     store_predicted_ensemble[i]=ensemble_predicted
     store_filtered_ensemble[i]=ensemble_filtered
+    ensemble=ensemble_filtered
 
-        
 label='ebias={}_ecov={}_obs={}_ens={}_ocov={}_gap={}_alpha={}_loc={}_r={}'.format(ebias, ecov,parameters['observables'],parameters['N'],parameters['mu'],parameters['obs_gap'],parameters['alpha'],parameters['loc_fun'],parameters['l_scale'])
 print('Job done, storing the ensembles now')
 print(store_filtered_ensemble.shape)
