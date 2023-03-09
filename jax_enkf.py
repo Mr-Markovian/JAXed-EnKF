@@ -1,5 +1,5 @@
 """Jaxed version of enkf.
-The aim to to create a filter object"""
+The aim to parallely integrate ensemble members using vmap and jit-compile the parts which are being repetetively used."""
 
 from jax import partial,vmap,jit
 import jax.numpy as jnp
@@ -73,6 +73,7 @@ my_solver=jit(partial(solver,rhs_function=model_vectorized,time_step=dt_solver))
 
 @jit
 def forecast(last_analysis_ensemble):
+    """The forecast step of the enkf to create ensemble for the prior at the observation time""""
     #forecast_ensemble=lax.fori_loop(0,iters_delta_t,my_solver,last_analysis_ensemble)
     forecast_ensemble=last_analysis_ensemble
     for i in range(iters_delta_t):
@@ -81,6 +82,7 @@ def forecast(last_analysis_ensemble):
 
 @jit
 def analysis(forecast_ensemble,perturbed_obs,alpha):
+    """The analysis step of the enkf to create ensemble from the posterior at observation time""""
     P_f_H_T=jnp.cov(alpha*forecast_ensemble,rowvar=True)@np.transpose(H)
     Kalman_gain=P_f_H_T@jnp.linalg.inv(H@P_f_H_T+R)
     innovations=perturbed_obs-H@forecast_ensemble
