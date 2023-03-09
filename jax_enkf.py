@@ -1,4 +1,5 @@
-"""Jaxed version of enkf.
+"""Jaxed version of Enkf. 
+The system is defined and impored from script 'testbed_models' and the solver is imported from 'ode_solvers' script.
 The aim to parallely integrate ensemble members using vmap and jit-compile the parts which are being repetetively used."""
 
 from jax import partial,vmap,jit
